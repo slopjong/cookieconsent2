@@ -7,6 +7,9 @@
    Constants
    */
 
+  // Script name which must be identical to the current file name
+  var SCRIPT_FILE_NAME = 'cookieconsent.js';
+
   // Client variable which may be present containing options to override with
   var OPTIONS_VARIABLE = 'cookieconsent_options';
 
@@ -215,7 +218,18 @@
       learnMore: 'More info',
       link: null,
       container: null, // selector
-      theme: 'light-floating'
+      theme: 'light-floating',
+      template: [
+        '<div class="cc_banner-wrapper {{containerClasses}}">',
+        '<div class="cc_banner cc_container cc_container--open">',
+        '<a href="#null" data-cc-event="click:dismiss" class="cc_btn cc_btn_accept_all">{{options.dismiss}}</a>',
+
+        '<p class="cc_message">{{options.message}} <a data-cc-if="options.link" class="cc_more_info" href="{{options.link || "#null"}}">{{options.learnMore}}</a></p>',
+
+        '<a class="cc_logo" target="_blank" href="http://silktide.com/cookieconsent">Cookie Consent plugin for the EU cookie law</a>',
+        '</div>',
+        '</div>'
+      ]
     },
 
     init: function () {
@@ -255,7 +269,21 @@
 
       // If theme is specified by name
       if (theme.indexOf('.css') === -1) {
-        theme = THEME_BUCKET_PATH + theme + '.css';
+        if (theme.indexOf('local:') === -1) {
+          theme = THEME_BUCKET_PATH + theme + '.css';
+        } else {
+          // alterativel 'document.getElementsByTagName("script")' could be used
+          var scripts = document.querySelectorAll('script[src]');
+
+          theme = 'themes/' + theme.replace('local:', '') + '.css';
+
+          for (var index in scripts) {
+            var re = new RegExp(SCRIPT_FILE_NAME,"g");
+            if (re.test(scripts[index].src)) {
+              theme = scripts[index].src.replace(SCRIPT_FILE_NAME, '') + theme;
+            }
+          }
+        }
       }
 
       var link = document.createElement('link');
@@ -274,20 +302,8 @@
       document.getElementsByTagName("head")[0].appendChild(link);
     },
 
-    markup: [
-      '<div class="cc_banner-wrapper {{containerClasses}}">',
-      '<div class="cc_banner cc_container cc_container--open">',
-      '<a href="#null" data-cc-event="click:dismiss" class="cc_btn cc_btn_accept_all">{{options.dismiss}}</a>',
-
-      '<p class="cc_message">{{options.message}} <a data-cc-if="options.link" class="cc_more_info" href="{{options.link || "#null"}}">{{options.learnMore}}</a></p>',
-
-      '<a class="cc_logo" target="_blank" href="http://silktide.com/cookieconsent">Cookie Consent plugin for the EU cookie law</a>',
-      '</div>',
-      '</div>'
-    ],
-
     render: function () {
-      this.element = DomBuilder.build(this.markup, this);
+      this.element = DomBuilder.build(this.options.template, this);
       if (!this.container.firstChild) {
         this.container.appendChild(this.element);
       } else {
